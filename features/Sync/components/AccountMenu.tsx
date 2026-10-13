@@ -1,9 +1,12 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
-import { UserRound } from 'lucide-react';
 import { getSupabase } from '@/shared/infra/client/supabase';
 import { clearLocalData, pushIfChanged } from '../lib/progressSync';
+import { useProfileStore } from '../lib/profile';
+import Avatar from './Avatar';
+import ProfileModal from './ProfileModal';
+import StyledName from './StyledName';
 
 // Game screens use the top-right corner for their own stats button
 const HIDDEN_ON = ['/train', '/learn', '/blitz', '/gauntlet'];
@@ -16,6 +19,9 @@ export default function AccountMenu() {
   const [userId, setUserId] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const [msg, setMsg] = useState('');
+  const [editing, setEditing] = useState(false);
+  const profile = useProfileStore(s => s.profile);
+  const loadProfile = useProfileStore(s => s.load);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -24,11 +30,12 @@ export default function AccountMenu() {
       sb.auth.getUser().then(({ data }) => {
         setEmail(data.user?.email ?? null);
         setUserId(data.user?.id ?? null);
+        void loadProfile();
       });
     void load();
     const { data } = sb.auth.onAuthStateChange(() => void load());
     return () => data.subscription.unsubscribe();
-  }, [sb]);
+  }, [sb, loadProfile]);
 
   useEffect(() => {
     if (!open) return;
@@ -39,7 +46,10 @@ export default function AccountMenu() {
     return () => document.removeEventListener('mousedown', close);
   }, [open]);
 
-  if (!sb || !userId || HIDDEN_ON.some(p => pathname?.includes(p))) return null;
+  if (!sb || !userId) return null;
+  if (editing) return <ProfileModal onClose={() => setEditing(false)} />;
+  if (HIDDEN_ON.some(p => pathname?.includes(p))) return null;
+  const displayName = profile?.username || email?.split('@')[0] || 'Tú';
 
   const logout = async () => {
     await pushIfChanged(sb, userId).catch(() => undefined);
@@ -54,19 +64,38 @@ export default function AccountMenu() {
       <button
         onClick={() => setOpen(!open)}
         aria-label='Cuenta'
-        className='flex h-11 w-11 items-center justify-center rounded-full border-2 border-(--border-color) bg-(--card-color) text-(--main-color) hover:cursor-pointer'
+        className='rounded-full border-2 border-(--border-color) hover:cursor-pointer'
       >
-        {email ? (
-          <span className='text-lg font-bold uppercase'>{email[0]}</span>
-        ) : (
-          <UserRound size={22} />
-        )}
+        <Avatar url={profile?.avatar_url ?? null} name={displayName} size={42} />
       </button>
       {open && (
         <div className='absolute right-0 mt-2 flex w-64 flex-col gap-2 rounded-2xl border-2 border-(--border-color) bg-(--card-color) p-3 shadow-lg'>
-          <p className='truncate text-sm text-(--secondary-color)'>
-            Sesión: <span className='text-(--main-color)'>{email}</span>
-          </p>
+          <div
+            className='-m-3 mb-1 flex items-center gap-3 rounded-t-2xl p-3'
+            style={{ background: profile?.banner_color }}
+          >
+            <Avatar url={profile?.avatar_url ?? null} name={displayName} size={44} />
+            <div className='min-w-0'>
+              <StyledName
+                name={displayName}
+                color={profile?.name_color ?? '#ff6b8a'}
+                color2={profile?.name_color2 ?? '#a78bfa'}
+                effect={profile?.name_effect ?? 'none'}
+                className='text-lg'
+              />
+              <p className='truncate text-xs text-white/70'>{email}</p>
+            </div>
+          </div>
+          {profile?.bio && <p className='text-xs text-(--secondary-color)'>{profile.bio}</p>}
+          <button
+            className='rounded-xl bg-(--main-color) px-3 py-2 text-left font-semibold text-white hover:cursor-pointer'
+            onClick={() => {
+              setOpen(false);
+              setEditing(true);
+            }}
+          >
+            Editar perfil
+          </button>
           <button
             className='rounded-xl border-2 border-(--border-color) px-3 py-2 text-left hover:cursor-pointer'
             onClick={async () => {
