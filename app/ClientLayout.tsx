@@ -30,7 +30,7 @@ import VisualEffectsRenderer from '@/features/Preferences/components/renderers/V
 import TransitionAdvertisementOverlay, {
   isTransitionAdvertisementEnabled,
 } from '@/shared/ui-composite/Game/TransitionAdvertisementOverlay';
-import { AuthGate } from '@/features/Sync';
+import { AccountMenu, AuthGate } from '@/features/Sync';
 import { STREAK_MILESTONE_DONATION_EVENT } from '@/shared/ui-composite/Game/StreakMilestoneOverlay';
 
 // Initialize adaptive selector early to load persisted weights from IndexedDB
@@ -377,6 +377,7 @@ export default function ClientLayout({
       <ScrollRestoration />
       <WelcomeModal />
       <AuthGate />
+      <AccountMenu />
       <AchievementNotificationContainer />
       {/* hamza */}
       <AchievementPromptsContainer />

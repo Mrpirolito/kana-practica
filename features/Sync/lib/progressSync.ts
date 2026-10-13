@@ -33,11 +33,8 @@ function snapshot(): string {
   return JSON.stringify(Object.fromEntries(entries));
 }
 
+// Only writes keys; never deletes local ones (switching accounts clears on logout)
 function applySnapshot(data: Record<string, string>) {
-  for (let i = localStorage.length - 1; i >= 0; i--) {
-    const k = localStorage.key(i)!;
-    if (isSyncedKey(k) && !(k in data)) localStorage.removeItem(k);
-  }
   for (const [k, v] of Object.entries(data)) {
     if (isSyncedKey(k) && typeof v === 'string') localStorage.setItem(k, v);
   }
