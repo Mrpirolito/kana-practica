@@ -71,8 +71,11 @@ export default function AccountMenu() {
       {open && (
         <div className='absolute right-0 mt-2 flex w-64 flex-col gap-2 rounded-2xl border-2 border-(--border-color) bg-(--card-color) p-3 shadow-lg'>
           <div
-            className='-m-3 mb-1 flex items-center gap-3 rounded-t-2xl p-3'
-            style={{ background: profile?.banner_color }}
+            className='-m-3 mb-1 flex items-center gap-3 rounded-t-2xl bg-cover bg-center p-3'
+            style={{
+              backgroundColor: profile?.banner_color,
+              backgroundImage: profile?.banner_url ? `url(${profile.banner_url})` : undefined,
+            }}
           >
             <Avatar url={profile?.avatar_url ?? null} name={displayName} size={44} />
             <div className='min-w-0'>

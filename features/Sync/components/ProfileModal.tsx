@@ -19,7 +19,7 @@ const MIN_PASSWORD = 6;
 
 // Profile editor: picture, username, bio, banner, name style, password and email
 export default function ProfileModal({ onClose }: { onClose: () => void }) {
-  const { profile, email, save, uploadAvatar } = useProfileStore();
+  const { profile, email, save, uploadImage } = useProfileStore();
   const [draft, setDraft] = useState<Profile | null>(profile);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
@@ -27,6 +27,7 @@ export default function ProfileModal({ onClose }: { onClose: () => void }) {
   const [password2, setPassword2] = useState('');
   const [newEmail, setNewEmail] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
+  const bannerRef = useRef<HTMLInputElement>(null);
   if (!draft) return null;
 
   const set = (patch: Partial<Profile>) => setDraft({ ...draft, ...patch });
@@ -49,7 +50,31 @@ export default function ProfileModal({ onClose }: { onClose: () => void }) {
   return (
     <div className='fixed inset-0 z-[110] flex items-start justify-center overflow-y-auto bg-black/60 p-4'>
       <div className='relative w-full max-w-md overflow-hidden rounded-3xl border-2 border-(--border-color) bg-(--card-color)'>
-        <div className='h-24' style={{ background: draft.banner_color }} />
+        <button
+          onClick={() => bannerRef.current?.click()}
+          aria-label='Cambiar imagen del banner'
+          className='group relative block h-28 w-full bg-cover bg-center hover:cursor-pointer'
+          style={{
+            backgroundColor: draft.banner_color,
+            backgroundImage: draft.banner_url ? `url(${draft.banner_url})` : undefined,
+          }}
+        >
+          <span className='absolute inset-0 flex items-center justify-center gap-2 bg-black/40 text-sm text-white opacity-0 transition group-hover:opacity-100'>
+            <Camera size={20} /> Imagen del banner
+          </span>
+        </button>
+        <input
+          ref={bannerRef}
+          type='file'
+          accept='image/png,image/jpeg,image/webp,image/gif'
+          hidden
+          onChange={async e => {
+            const f = e.target.files?.[0];
+            if (!f) return;
+            await run(() => uploadImage('banner', f), 'Banner actualizado');
+            setDraft(d => (d ? { ...d, banner_url: useProfileStore.getState().profile?.banner_url ?? d.banner_url } : d));
+          }}
+        />
         <button
           onClick={onClose}
           aria-label='Cerrar'
@@ -78,7 +103,7 @@ export default function ProfileModal({ onClose }: { onClose: () => void }) {
               onChange={async e => {
                 const f = e.target.files?.[0];
                 if (!f) return;
-                await run(() => uploadAvatar(f), 'Foto actualizada');
+                await run(() => uploadImage('avatar', f), 'Foto actualizada');
                 setDraft(d => (d ? { ...d, avatar_url: useProfileStore.getState().profile?.avatar_url ?? d.avatar_url } : d));
               }}
             />
@@ -147,8 +172,13 @@ export default function ProfileModal({ onClose }: { onClose: () => void }) {
               </label>
               <label className='flex items-center gap-2'>
                 Banner
-                <input type='color' value={draft.banner_color} onChange={e => set({ banner_color: e.target.value })} />
+                <input type='color' value={draft.banner_color} onChange={e => set({ banner_color: e.target.value, banner_url: null })} />
               </label>
+              {draft.banner_url && (
+                <button className='underline hover:cursor-pointer' onClick={() => set({ banner_url: null })}>
+                  Quitar imagen del banner
+                </button>
+              )}
             </div>
           </div>
 

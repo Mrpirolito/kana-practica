@@ -11,6 +11,7 @@ export interface Profile {
   name_color2: string;
   name_effect: NameEffect;
   banner_color: string;
+  banner_url: string | null;
   bio: string | null;
 }
 
@@ -21,6 +22,7 @@ export const DEFAULT_PROFILE: Omit<Profile, 'id'> = {
   name_color2: '#a78bfa',
   name_effect: 'none',
   banner_color: '#2a2140',
+  banner_url: null,
   bio: null,
 };
 
@@ -29,7 +31,7 @@ interface ProfileState {
   email: string | null;
   load: () => Promise<void>;
   save: (patch: Partial<Omit<Profile, 'id'>>) => Promise<string | null>;
-  uploadAvatar: (file: File) => Promise<string | null>;
+  uploadImage: (kind: 'avatar' | 'banner', file: File) => Promise<string | null>;
 }
 
 const ERRORS: Record<string, string> = {
@@ -61,17 +63,17 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
     set({ profile: next });
     return null;
   },
-  uploadAvatar: async file => {
+  uploadImage: async (kind, file) => {
     const sb = getSupabase();
     const current = get().profile;
     if (!sb || !current) return 'Sin sesión';
-    if (file.size > 2 * 1024 * 1024) return 'La imagen debe pesar menos de 2 MB';
+    if (file.size > 4 * 1024 * 1024) return 'La imagen debe pesar menos de 4 MB';
     const ext = file.name.split('.').pop()?.toLowerCase() || 'png';
     // New name each time so browsers and the CDN never show the old picture
-    const path = `${current.id}/avatar-${Date.now()}.${ext}`;
+    const path = `${current.id}/${kind}-${Date.now()}.${ext}`;
     const { error } = await sb.storage.from('avatars').upload(path, file, { upsert: true });
     if (error) return error.message;
     const { data } = sb.storage.from('avatars').getPublicUrl(path);
-    return get().save({ avatar_url: data.publicUrl });
+    return get().save(kind === 'avatar' ? { avatar_url: data.publicUrl } : { banner_url: data.publicUrl });
   },
 }));
