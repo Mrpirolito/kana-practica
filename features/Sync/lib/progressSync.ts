@@ -83,6 +83,30 @@ export async function pushIfChanged(
 
 export const clearSyncMeta = () => localStorage.removeItem(META_KEY);
 
+/** This device has never synced with this account */
+export const isFirstSyncOnDevice = (userId: string) => readMeta()?.userId !== userId;
+
+/** The device already holds practice progress (answered kana) */
+export function localHasProgress(): boolean {
+  try {
+    const stats = JSON.parse(localStorage.getItem('kanadojo-stats') ?? 'null');
+    return Object.keys(stats?.state?.allTimeStats?.characterMastery ?? {}).length > 0;
+  } catch {
+    return false;
+  }
+}
+
+/** Upload this device's data, replacing whatever the account had */
+export async function forcePush(sb: SupabaseClient, userId: string) {
+  const payload = snapshot();
+  const updatedAt = new Date().toISOString();
+  const { error } = await sb
+    .from('user_progress')
+    .upsert({ user_id: userId, data: JSON.parse(payload), updated_at: updatedAt });
+  if (error) throw error;
+  writeMeta({ userId, syncedAt: updatedAt, lastPayload: payload });
+}
+
 /** Logging out leaves no one's data on a shared device */
 export function clearLocalData() {
   for (let i = localStorage.length - 1; i >= 0; i--) {

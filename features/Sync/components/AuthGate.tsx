@@ -3,7 +3,13 @@ import { useEffect, useState } from 'react';
 import clsx from 'clsx';
 import type { Session } from '@supabase/supabase-js';
 import { getSupabase } from '@/shared/infra/client/supabase';
-import { clearSyncMeta, pullIfNewer, pushIfChanged } from '../lib/progressSync';
+import {
+  forcePush,
+  isFirstSyncOnDevice,
+  localHasProgress,
+  pullIfNewer,
+  pushIfChanged,
+} from '../lib/progressSync';
 
 const PUSH_EVERY_MS = 20_000;
 const MIN_PASSWORD = 6;
@@ -59,7 +65,16 @@ export default function AuthGate() {
           if (r === 'pulled' && !stopped) window.location.reload();
         })
         .catch(e => console.warn('[sync]', e));
-    pullIfNewer(sb, userId)
+    // First login on a device that already has progress: let the user pick which copy wins
+    const keepThisDevice =
+      isFirstSyncOnDevice(userId) &&
+      localHasProgress() &&
+      window.confirm(
+        'Este dispositivo ya tiene progreso guardado.\n\n' +
+          'Aceptar: subir el progreso de ESTE dispositivo a tu cuenta (reemplaza el de la nube).\n' +
+          'Cancelar: usar el progreso de tu cuenta (reemplaza el de este dispositivo).',
+      );
+    (keepThisDevice ? forcePush(sb, userId).then(() => false) : pullIfNewer(sb, userId))
       .then(pulled => (pulled ? window.location.reload() : sync()))
       .catch(e => console.warn('[sync]', e));
     const timer = setInterval(sync, PUSH_EVERY_MS);
@@ -97,7 +112,6 @@ export default function AuthGate() {
     if (mode === 'login') {
       const { error } = await sb.auth.signInWithPassword({ email, password });
       if (error) setError(translate(error.message));
-      else clearSyncMeta();
     } else if (mode === 'signup') {
       const { data, error } = await sb.auth.signUp({
         email,
@@ -108,7 +122,7 @@ export default function AuthGate() {
       else if (!data.session) {
         switchMode('login');
         setInfo('Cuenta creada. Confirma el email que te hemos enviado y luego entra aquí.');
-      } else clearSyncMeta();
+      }
     } else if (mode === 'forgot') {
       const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo });
       if (error) setError(translate(error.message));
