@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import clsx from 'clsx';
 import type { Session } from '@supabase/supabase-js';
 import { getSupabase } from '@/shared/infra/client/supabase';
+import { useMounted } from '@/shared/hooks/generic/useMounted';
 import {
   forcePush,
   isFirstSyncOnDevice,
@@ -30,6 +31,8 @@ const translate = (msg: string) => ERRORS[msg] ?? msg;
  */
 export default function AuthGate() {
   const sb = getSupabase();
+  // Supabase only exists in the browser: render nothing until mounted to keep hydration stable
+  const mounted = useMounted();
   const [session, setSession] = useState<Session | null>(null);
   const [ready, setReady] = useState(!sb);
   const [mode, setMode] = useState<Mode>('login');
@@ -89,7 +92,7 @@ export default function AuthGate() {
     };
   }, [sb, session, mode]);
 
-  if (!sb || (session && mode !== 'recover')) return null;
+  if (!mounted || !sb || (session && mode !== 'recover')) return null;
 
   const switchMode = (m: Mode) => {
     setMode(m);

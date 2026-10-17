@@ -1,12 +1,14 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { getSupabase } from '@/shared/infra/client/supabase';
+import { useMounted } from '@/shared/hooks/generic/useMounted';
 import { clearLocalData, pushIfChanged } from '../lib/progressSync';
 import { SOURCE_URL } from './AuthGate';
 
 // Shows who is logged in, lets them force a sync and log out
 export default function AccountSection() {
   const sb = getSupabase();
+  const mounted = useMounted();
   const [email, setEmail] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [msg, setMsg] = useState('');
@@ -18,6 +20,7 @@ export default function AccountSection() {
     });
   }, [sb]);
 
+  if (!mounted) return null;
   if (!sb) {
     return <p className='text-(--secondary-color)'>Sincronización no configurada (modo local).</p>;
   }

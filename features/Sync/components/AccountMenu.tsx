@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { getSupabase } from '@/shared/infra/client/supabase';
+import { useMounted } from '@/shared/hooks/generic/useMounted';
 import { clearLocalData, pushIfChanged } from '../lib/progressSync';
 import { useProfileStore } from '../lib/profile';
 import Avatar from './Avatar';
@@ -14,6 +15,7 @@ const HIDDEN_ON = ['/train', '/learn', '/blitz', '/gauntlet'];
 /** Top-right account button: shows the email, syncs, logs out or switches account */
 export default function AccountMenu() {
   const sb = getSupabase();
+  const mounted = useMounted();
   const pathname = usePathname();
   const [email, setEmail] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
@@ -46,7 +48,7 @@ export default function AccountMenu() {
     return () => document.removeEventListener('mousedown', close);
   }, [open]);
 
-  if (!sb || !userId) return null;
+  if (!mounted || !sb || !userId) return null;
   if (editing) return <ProfileModal onClose={() => setEditing(false)} />;
   if (HIDDEN_ON.some(p => pathname?.includes(p))) return null;
   const displayName = profile?.username || email?.split('@')[0] || 'Tú';
