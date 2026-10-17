@@ -89,9 +89,16 @@ const Game = () => {
       setGameMode(handoff.gameMode);
       setAutoSelectionActive('kana', true);
       clearAutoLearningHandoff();
+    } else {
+      // Reopened tab or expired handoff: nothing to practise, so go back to the menu
+      const { kanaGroupIndices, selectedGameModeKana } = useKanaStore.getState();
+      if (kanaGroupIndices.length === 0 && selectedGameModeKana !== 'Mixed') {
+        router.replace('/kana');
+        return;
+      }
     }
     setIsSelectionReady(true);
-  }, [replaceGroups, setAutoSelectionActive, setGameMode]);
+  }, [replaceGroups, setAutoSelectionActive, setGameMode, router]);
 
   const clearAutoLearningSelection = useCallback(() => {
     if (!isAutoLearningSessionRef.current) return;
