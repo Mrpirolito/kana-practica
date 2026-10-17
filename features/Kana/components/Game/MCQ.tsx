@@ -126,6 +126,8 @@ const KanaMCQ = ({
     incrementWrongAnswers,
     addCharacterToHistory,
     incrementCharacterScore,
+    addCorrectAnswerTime,
+    recordAnswerTime,
   } = useStatsStore(
     useShallow(state => ({
       score: state.score,
@@ -138,6 +140,8 @@ const KanaMCQ = ({
       incrementWrongAnswers: state.incrementWrongAnswers,
       addCharacterToHistory: state.addCharacterToHistory,
       incrementCharacterScore: state.incrementCharacterScore,
+      addCorrectAnswerTime: state.addCorrectAnswerTime,
+      recordAnswerTime: state.recordAnswerTime,
     })),
   );
 
@@ -148,6 +152,8 @@ const KanaMCQ = ({
   const kanaGroupIndices = useKanaStore(state => state.kanaGroupIndices);
 
   const isProcessingRef = useRef(false);
+  // When the current prompt appeared, for answer-time stats
+  const questionStartRef = useRef(performance.now());
 
   // Optional charPool narrows the selected rows to specific kana (Mixed course)
   const [selectedKana, selectedRomaji] = useMemo(() => {
@@ -332,6 +338,9 @@ const KanaMCQ = ({
   const handleCorrectAnswer = useCallback(
     (correctChar: string) => {
       playCorrect();
+      const answerMs = performance.now() - questionStartRef.current;
+      addCorrectAnswerTime(answerMs / 1000);
+      recordAnswerTime(answerMs);
       // Reverse questions are keyed by romaji; mastery is tracked per kana
       const scoredChar = isReverse ? correctKanaCharReverse : correctChar;
       addCharacterToHistory(scoredChar);
@@ -369,6 +378,8 @@ const KanaMCQ = ({
     },
     [
       playCorrect,
+      addCorrectAnswerTime,
+      recordAnswerTime,
       addCharacterToHistory,
       incrementCharacterScore,
       incrementCorrectAnswers,
@@ -512,6 +523,9 @@ const KanaMCQ = ({
   );
 
   const displayChar = isReverse ? correctRomajiCharReverse : correctKanaChar;
+  useEffect(() => {
+    questionStartRef.current = performance.now();
+  }, [displayChar]);
   if (!selectedKana || selectedKana.length === 0) {
     return null;
   }

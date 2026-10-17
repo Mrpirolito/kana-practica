@@ -211,6 +211,9 @@ const InputGame = ({
     answerStartTimeRef.current = performance.now();
     elapsedTimeMsRef.current = 0;
   }, []);
+  useEffect(() => {
+    startTimer();
+  }, [startTimer]);
 
   const hasKana = selectedKana.length > 0;
   const hasRomaji = selectedRomaji.length > 0;

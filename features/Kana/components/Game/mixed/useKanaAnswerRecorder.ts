@@ -1,5 +1,5 @@
 'use client';
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useStatsStore } from '@/features/Progress';
 import { useCorrect, useError } from '@/shared/hooks/generic/useAudio';
@@ -22,14 +22,25 @@ export function useKanaAnswerRecorder() {
       incrementWrongAnswers: state.incrementWrongAnswers,
       addCharacterToHistory: state.addCharacterToHistory,
       incrementCharacterScore: state.incrementCharacterScore,
+      addCorrectAnswerTime: state.addCorrectAnswerTime,
+      recordAnswerTime: state.recordAnswerTime,
     })),
   );
+  const startRef = useRef(performance.now());
+  // Answer time since the exercise appeared, or since the previous answer within it
+  const recordTime = useCallback(() => {
+    const ms = performance.now() - startRef.current;
+    startRef.current = performance.now();
+    s.addCorrectAnswerTime(ms / 1000);
+    s.recordAnswerTime(ms);
+  }, [s]);
   const { playCorrect } = useCorrect();
   const { playErrorTwice } = useError();
 
   const recordCorrect = useCallback(
     (char: string) => {
       playCorrect();
+      recordTime();
       s.addCharacterToHistory(char);
       s.incrementCharacterScore(char, 'correct');
       s.incrementCorrectAnswers();
@@ -39,7 +50,7 @@ export function useKanaAnswerRecorder() {
       else s.incrementKatakanaCorrect();
       s.resetWrongStreak();
     },
-    [s, playCorrect],
+    [s, playCorrect, recordTime],
   );
 
   const recordWrong = useCallback(
@@ -59,6 +70,7 @@ export function useKanaAnswerRecorder() {
     (good: boolean) => {
       if (good) {
         playCorrect();
+        recordTime();
         s.incrementCorrectAnswers();
         s.setScore(s.score + 1);
         s.resetWrongStreak();
@@ -68,7 +80,7 @@ export function useKanaAnswerRecorder() {
         s.incrementWrongStreak();
       }
     },
-    [s, playCorrect, playErrorTwice],
+    [s, playCorrect, playErrorTwice, recordTime],
   );
 
   return { recordCorrect, recordWrong, recordWord, adaptiveSelector };

@@ -6,6 +6,7 @@ import { useMounted } from '@/shared/hooks/generic/useMounted';
 import { clearLocalData, pushIfChanged } from '../lib/progressSync';
 import { useProfileStore } from '../lib/profile';
 import Avatar from './Avatar';
+import LeaderboardModal from './LeaderboardModal';
 import ProfileModal from './ProfileModal';
 import StyledName from './StyledName';
 
@@ -22,6 +23,7 @@ export default function AccountMenu() {
   const [open, setOpen] = useState(false);
   const [msg, setMsg] = useState('');
   const [editing, setEditing] = useState(false);
+  const [ranking, setRanking] = useState(false);
   const profile = useProfileStore(s => s.profile);
   const loadProfile = useProfileStore(s => s.load);
   const ref = useRef<HTMLDivElement>(null);
@@ -50,6 +52,7 @@ export default function AccountMenu() {
 
   if (!mounted || !sb || !userId) return null;
   if (editing) return <ProfileModal onClose={() => setEditing(false)} />;
+  if (ranking) return <LeaderboardModal userId={userId} onClose={() => setRanking(false)} />;
   if (HIDDEN_ON.some(p => pathname?.includes(p))) return null;
   const displayName = profile?.username || email?.split('@')[0] || 'Tú';
 
@@ -100,6 +103,15 @@ export default function AccountMenu() {
             }}
           >
             Editar perfil
+          </button>
+          <button
+            className='rounded-xl border-2 border-(--border-color) px-3 py-2 text-left hover:cursor-pointer'
+            onClick={() => {
+              setOpen(false);
+              setRanking(true);
+            }}
+          >
+            🏆 Ranking
           </button>
           <button
             className='rounded-xl border-2 border-(--border-color) px-3 py-2 text-left hover:cursor-pointer'
